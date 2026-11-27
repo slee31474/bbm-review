@@ -41,20 +41,26 @@
   --media-bg: #060708; color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+::selection { background: var(--accent-soft); color: var(--ink); }
+button, a, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-block: 18px 48px; display: grid; gap: 22px; }
 .wrap > * { min-width: 0; }
 header { display: grid; gap: 7px; }
 h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
 h1 span { color: var(--accent); }
 .lead { margin: 0; font-size: 1.05rem; font-weight: 700; text-wrap: balance; }
+.lead .ver { display: block; margin-top: 2px; font-size: 0.86rem; font-weight: 400; color: var(--muted); text-wrap: pretty; }
 .next { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-weight: 500; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 0.82rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: 1px dashed var(--accent);
   border-radius: 999px; padding: 2px 10px; text-decoration: none; white-space: nowrap; }
 .chip:hover { text-decoration: underline; }
 .sub { margin: 0; color: var(--muted); font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.sub span { white-space: nowrap; }
 .sub .n-ok { color: var(--ok); font-weight: 500; }
 .sub .n-fix { color: var(--fix); font-weight: 500; }
 .sub .n-hold { color: var(--hold); font-weight: 500; }
@@ -125,15 +131,20 @@ h2 { margin: 0 0 10px; font-size: 0.8rem; letter-spacing: 0.06em; color: var(--m
 .more summary { cursor: pointer; }
 .more p { margin: 6px 0 0; }
 .more .en { font-style: italic; }
-.actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.act { font: inherit; font-size: 0.88rem; font-weight: 500; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
-  border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.act { font: inherit; font-size: 0.9rem; font-weight: 700; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  border-radius: 8px; padding: 6px 8px; min-height: 44px; cursor: pointer; white-space: nowrap; transition: background-color 0.12s, color 0.12s; }
+.act:active { transform: translateY(1px); }
+@media (hover: hover) { .act:hover { border-color: var(--muted); } }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tools .act { min-height: 40px; padding: 6px 12px; font-weight: 500; font-size: 0.86rem; }
 .act[data-v="ok"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
 .act[data-v="fix"][aria-pressed="true"] { background: var(--fix); border-color: var(--fix); color: var(--surface); }
 .act[data-v="hold"][aria-pressed="true"] { background: var(--hold); border-color: var(--hold); color: var(--surface); }
 .act:disabled, .pick:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
 textarea { font: inherit; font-size: 0.88rem; width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line);
-  border-radius: 6px; padding: 7px 9px; background: var(--bg); color: var(--ink); }
+  border-radius: 8px; padding: 8px 10px; background: var(--bg); color: var(--ink); caret-color: var(--accent); }
+.card[data-status="fix"] textarea { border-color: var(--fix); }
 .saved { font-size: 0.75rem; color: var(--muted); min-height: 1.1em; }
 
 /* the full film: the first thing to watch */
@@ -153,15 +164,55 @@ textarea { font: inherit; font-size: 0.88rem; width: 100%; min-height: 64px; res
 
 footer { font-size: 0.78rem; color: var(--muted); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 560px) {
-  .map { gap: 4px; }
-  .cell { padding: 5px 5px 6px; min-height: 60px; }
-  .cell .c { font-size: 0.72rem; }
-  .cell .t { font-size: 0.64rem; }
-  .cell .s { font-size: 0.72rem; }
+/* the bar fixed at the bottom: progress (tap = cut map), next unmarked cut, copy the result */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 0.08); padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+body[data-typing] .dock { transform: translateY(calc(100% + 4px)); }
+.dock-in { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; gap: 8px; }
+.dock-bar { position: absolute; left: 0; right: 0; top: -1px; height: 3px; background: transparent; }
+.dock-bar i { display: block; height: 100%; width: 100%; background: var(--ok); transform: scaleX(0); transform-origin: left center;
+  transition: transform 0.3s ease-out; }
+.dock-tally { flex: 1 1 auto; min-width: 0; min-height: 44px; display: grid; align-content: center; gap: 1px; text-align: left; font: inherit;
+  color: var(--ink); background: none; border: 0; padding: 2px 4px; cursor: pointer; border-radius: 6px; }
+.dock-tally b { font-family: var(--font-mono); font-weight: 500; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.dock-tally small { font-size: 0.76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dock-tally small .n-fix { color: var(--fix); font-weight: 700; }
+.dock-btn, .dock-act .act { min-height: 44px; padding: 0 14px; border-radius: 8px; font: inherit; font-size: 0.9rem; font-weight: 700;
+  white-space: nowrap; cursor: pointer; }
+.dock-btn { border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.dock-act { display: contents; }
+.dock-act .act { background: var(--accent); border: 1px solid var(--accent); color: var(--surface); min-width: 92px; }
+
+/* phone: one cut per screen */
+@media (max-width: 640px) {
+  .wrap { gap: 18px; padding-block: 14px 28px; }
+  h1 { font-size: 1.1rem; }
+  .lead { font-size: 1rem; }
+  .map { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+  .cell { min-height: 56px; padding: 6px 7px 7px; }
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .card { scroll-margin-top: 10px; }
+  .band { padding: 7px 12px; font-size: 0.84rem; }
+  .media { aspect-ratio: auto; height: min(calc((100vw - 32px) * 16 / 9), 58vh); height: min(calc((100vw - 32px) * 16 / 9), 58svh); }
   .card.full { display: flex; }
+  .card.full .info, .info { padding: 11px 12px 13px; gap: 9px; }
+  .title { font-size: 1.02rem; }
+  .change, .temp, .more { font-size: 0.92rem; }
+  .act { font-size: 0.95rem; }
+  textarea, .card.full textarea { font-size: 16px; min-height: 52px; }
+  .folds summary { min-height: 32px; display: flex; align-items: center; }
 }
-@media (max-width: 420px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* phone on its side: clip beside the marks */
+@media (orientation: landscape) and (max-height: 540px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); }
+  .card, .card.full { display: grid; grid-template-columns: auto minmax(0, 1fr); max-width: none; }
+  .card .band { grid-column: 1 / -1; }
+  .media { aspect-ratio: 9 / 16; height: 74vh; height: 74svh; width: auto; }
+  .card.full .info, .info { padding: 10px 12px; }
+  textarea { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -201,8 +252,17 @@ footer { font-size: 0.78rem; color: var(--muted); }
     <div class="grid" id="grid"></div>
   </section>
 
-  <footer>다 보셨으면 에이전트에게 "검수표 확인해"라고 말씀해 주세요. 표시와 메모를 그대로 읽어 다음 버전에 반영합니다. 페이지 갱신: 2026-11-27 04:15</footer>
+  <footer>다 보셨으면 에이전트에게 "검수표 확인해"라고 말씀해 주세요. 표시와 메모를 그대로 읽어 다음 버전에 반영합니다. 페이지 갱신: 2026-11-27 17:55</footer>
 </div>
+
+<nav class="dock" id="dock" aria-label="검수 진행">
+  <div class="dock-bar" aria-hidden="true"><i id="dock-fill"></i></div>
+  <div class="dock-in">
+    <button type="button" class="dock-tally" id="dock-tally" aria-label="컷 지도로 가기"><b id="dock-n"></b><small id="dock-x"></small></button>
+    <button type="button" class="dock-btn" id="dock-next">다음 미검수</button>
+    <span class="dock-act" id="dock-act"></span>
+  </div>
+</nav>
 
 <script>
 const SHEET = {"episode": "EP06 타워 브리지 (Built By Madmen)", "version": "WebGL 블로킹 첫 버전 · 2,205프레임 73.5초 · 녹음 take 1(영상 속도) · 인물은 맨몸, 물건은 실제 크기 상자", "collection": "ep06_take1", "length": "1:13.5", "summary": ["WebGL 단계라 인물은 옷 없는 맨몸, 다리·배·건물은 실제 크기의 단순 상자입니다. 진짜 모델·옷·물·조명은 승인 후 Blender에서 들어갑니다.", "첫 장면 A: 뱃사공(W1) 비명 얼굴 → 배가 돌기둥에 쾅 → 물보라 → 낮은 옛 다리에 배들이 막힌 전경. 뱃사공은 진짜 비명 입모양이 있는 W1으로 했습니다(W5는 옷·GLB 없음).", "새 카메라 규칙: 화면 기울기 0(모든 프레임), 피사체 주위 돌기 없음, 한 번에 27.5°까지만 돌림, 회전 대신 이동, 장소 전환은 컷.", "검사: 8개 검사, 부품 겹침 0(29쌍), 움직임 양(평균 18.1, 정지 0%) 통과. 마지막 프레임 = 첫 프레임(0ms 반복).", "알려드릴 약점: B05 뱃사공이 첫 화면에서 작게 보임 · B06 부러진 돛대가 물에 떨어지는 장면이 컷 뒤로 넘어가 안 보임 · B11 탑 받침 속 단면 장면이 약하게 읽힘."], "placeholders": ["WebGL 첫 버전입니다: 인물은 맨몸 한 가지 색, 물건은 실제 크기 상자, 물보라·먼지는 자리표시 입자입니다.", "소리는 내레이션만 있습니다(효과음·음악은 테이크 확정 후)."], "cuts": [{"id": "c01", "label": "C01", "kind": "new", "tag": "새로", "start": "0:00.0", "end": "0:07.3", "at": "0:00", "say": "The British had completely lost their #@%! minds, because they built a bridge across the Thames, and its pillars blocked every ship.", "ko": "영국인들은 완전히 미쳐버렸습니다. 템스강에 다리를 놓았는데 그 기둥들이 모든 배를 막아버렸거든요.", "picture": "W1 비명 얼굴(뱃머리 난간) → 돌기둥이 다가옴(컷) → 100프레임 배가 기둥에 쾅, 물보라 → (컷) 옛 낮은 다리 앞에 막힌 배들 전경.", "changed": "첫 장면 A", "temp": ""}, {"id": "c02", "label": "C02", "kind": "new", "tag": "새로", "start": "0:07.3", "end": "0:09.8", "at": "0:07", "say": "So a clever engineer came up with a fix.", "ko": "그래서 똑똑한 엔지니어가 해결책을 생각해 냈습니다.", "picture": "강둑의 MAD, 고개 숙였다가 'fix'에 고개를 듦.", "changed": "", "temp": ""}, {"id": "c03", "label": "C03", "kind": "new", "tag": "새로", "start": "0:09.8", "end": "0:13.1", "at": "0:09", "say": "He built two tall towers and hung the road from chains.", "ko": "높은 탑 두 개를 세우고 도로 전체를 쇠사슬에 매달았습니다.", "picture": "옛 기둥이 가라앉고 탑 두 개가 강에 섬(330) → 쇠사슬이 내려와 도로를 매닮(346), 사슬 팽팽(379).", "changed": "", "temp": ""}, {"id": "c04", "label": "C04", "kind": "new", "tag": "새로", "start": "0:13.1", "end": "0:15.1", "at": "0:13", "say": "With the pillars gone, boats could sail through.", "ko": "기둥이 사라지니 배가 지나갈 수 있었죠.", "picture": "수면 높이: 작은 배가 매달린 도로 아래 열린 가운데로 지나감(426).", "changed": "", "temp": ""}, {"id": "c05", "label": "C05", "kind": "new", "tag": "확인", "start": "0:15.1", "end": "0:17.2", "at": "0:15", "say": "But that's where the real problem started.", "ko": "그런데 진짜 문제는 여기서부터였습니다.", "picture": "W1이 탄 큰 범선이 매달린 도로로 다가옴, W1이 도로 끝을 올려다봄.", "changed": "약점: 첫 화면에서 W1이 작게 보임", "temp": ""}, {"id": "c06", "label": "C06", "kind": "new", "tag": "확인", "start": "0:17.2", "end": "0:22.1", "at": "0:17", "say": "Tall sailing ships couldn't fit underneath, so their masts slammed into the road and snapped.", "ko": "키 큰 범선은 아래로 못 지나가서 돛대가 도로에 쾅 부딪혀 부러졌거든요.", "picture": "돛대가 도로 끝에 부딪힘(603) → 부러짐(638) → W1 비명.", "changed": "약점: 부러진 돛대가 물에 떨어지는 순간(682)이 다음 컷 뒤라 안 보임", "temp": ""}, {"id": "c07", "label": "C07", "kind": "new", "tag": "새로", "start": "0:22.1", "end": "0:26.9", "at": "0:22", "say": "Raising the road meant huge ramps on both banks, which ate up land and cost a fortune.", "ko": "도로를 높이려면 양쪽 강둑에 거대한 경사로가 필요해서 땅을 잡아먹고 돈이 엄청 들었죠.", "picture": "도로가 높이 올라가고 경사로가 강둑의 집들을 뚫고 지나감(727~743) → G4 놀람(782).", "changed": "", "temp": ""}, {"id": "c08", "label": "C08", "kind": "new", "tag": "새로", "start": "0:26.9", "end": "0:29.8", "at": "0:26", "say": "And right then, someone had a genius idea.", "ko": "바로 그때, 누군가가 천재적인 생각을 해냈습니다.", "picture": "G4 생각하다가 'genius'에 다리 쪽을 가리킴(855).", "changed": "", "temp": ""}, {"id": "c09", "label": "C09", "kind": "new", "tag": "새로", "start": "0:29.8", "end": "0:32.9", "at": "0:29", "say": "Why not split the road and lift both halves for every ship?", "ko": "배가 올 때마다 도로를 반으로 갈라서 양쪽을 들어 올리면 어떨까요?", "picture": "탑 사이 도로가 가운데서 갈라지고(903) 양쪽이 살짝 들림(931), 돛대가 들어옴(978).", "changed": "", "temp": ""}, {"id": "c10", "label": "C10", "kind": "new", "tag": "새로", "start": "0:32.9", "end": "0:35.2", "at": "0:32", "say": "The engineers did something crazy.", "ko": "엔지니어들이 미친 짓을 했습니다.", "picture": "탑 받침 안의 MAD가 레버 손잡이를 잡음(단면).", "changed": "", "temp": ""}, {"id": "c11", "label": "C11", "kind": "new", "tag": "확인", "start": "0:35.2", "end": "0:39.9", "at": "0:35", "say": "They bolted huge weights onto the back of each half, hidden inside each tower's base.", "ko": "갈라진 도로 양쪽 끝 뒤편에 엄청 무거운 추를 달아 탑 받침 속에 숨겼습니다.", "picture": "탑 받침 단면(유리 18%): 도로 꼬리에 추가 내려와 볼트로 고정(1084, 1106) → 받침 벽이 닫힘(1140).", "changed": "약점: 단면이 화면에서 약하게 읽힘", "temp": ""}, {"id": "c12", "label": "C12", "kind": "new", "tag": "새로", "start": "0:39.9", "end": "0:44.2", "at": "0:39", "say": "Like a seesaw, the weights went down and both halves swung up with barely a push.", "ko": "시소처럼 추가 내려가자 살짝 밀기만 해도 양쪽이 쑥 일어섰습니다.", "picture": "추가 내려가고(1243) 다리 양쪽이 82°까지 일어섬(1283), 카메라가 다리와 함께 올라감 → MAD의 레버 밀기 끝(1307).", "changed": "", "temp": ""}, {"id": "c13", "label": "C13", "kind": "new", "tag": "새로", "start": "0:44.2", "end": "0:46.6", "at": "0:44", "say": "The road went up seventeen times a day.", "ko": "다리는 하루에 열일곱 번이나 열렸죠.", "picture": "빠른 시간 경과: 다리가 세 번 오르내리고 배들이 지나감.", "changed": "", "temp": ""}, {"id": "c14", "label": "C14", "kind": "new", "tag": "새로", "start": "0:46.6", "end": "0:48.6", "at": "0:46", "say": "But another serious problem showed up.", "ko": "그런데 또 심각한 문제가 나타났습니다.", "picture": "탑 꼭대기 쇠사슬 걸이 클로즈업, 삐걱(1430).", "changed": "", "temp": ""}, {"id": "c15", "label": "C15", "kind": "new", "tag": "새로", "start": "0:48.6", "end": "0:53.2", "at": "0:48", "say": "The side chains yanked both tower tops toward the banks, and the towers started to lean.", "ko": "양옆 쇠사슬이 두 탑 꼭대기를 강둑 쪽으로 확 잡아당겨 탑이 기울기 시작했습니다.", "picture": "사슬이 당김(1482) → 두 탑이 바깥으로 5° 기움(1574), G4 놀람.", "changed": "", "temp": ""}, {"id": "c16", "label": "C16", "kind": "new", "tag": "새로", "start": "0:53.2", "end": "0:58.2", "at": "0:53", "say": "So workers tied both tops together with steel bars, and each tower held the other straight.", "ko": "그래서 작업자들이 두 꼭대기를 강철 막대로 묶어, 두 탑이 서로를 꽉 붙잡게 했죠.", "picture": "탑 꼭대기의 W3가 망치질(5번), 강철 막대가 걸림(1670) → 탑이 똑바로 섬(1726).", "changed": "", "temp": ""}, {"id": "c17", "label": "C17", "kind": "new", "tag": "새로", "start": "0:58.2", "end": "0:59.5", "at": "0:58", "say": "And it didn't end there.", "ko": "그리고 여기서 끝이 아니었습니다.", "picture": "걷던 G4가 들려 있는 다리 끝에서 멈춤.", "changed": "", "temp": ""}, {"id": "c18", "label": "C18", "kind": "new", "tag": "새로", "start": "0:59.5", "end": "1:05.5", "at": "0:59", "say": "To let people cross while the road was up, workers laid walkways along those bars, with stairs inside the towers.", "ko": "도로가 들려 있어도 사람이 건너도록 작업자들이 그 강철 막대를 따라 통로를 깔고 탑 안에 계단을 놓았습니다.", "picture": "통로 바닥이 깔림(1855) → 탑 안 계단이 쌓임(1879~1905) → G4가 돛대 위 높은 통로를 건넘(1930).", "changed": "", "temp": ""}, {"id": "c19", "label": "C19", "kind": "new", "tag": "새로", "start": "1:05.5", "end": "1:10.2", "at": "1:05", "say": "Finally, they wrapped the steel towers and their stairs in stone to match the old castle next door.", "ko": "마지막으로 철골 탑과 계단을 돌로 감싸 옆의 오래된 성과 어울리게 했습니다.", "picture": "돌 외벽이 탑을 타고 올라감(1978~2050) → 북쪽 강둑의 런던탑(성)과 한 화면(2069).", "changed": "", "temp": ""}, {"id": "c20", "label": "C20", "kind": "new", "tag": "새로", "start": "1:10.2", "end": "1:13.5", "at": "1:10", "say": "Ships and people still share London's Tower Bridge, all because", "ko": "지금도 배와 사람이 함께 쓰는 런던의 타워 브리지, 이 모든 게 —", "picture": "완성된 다리, 열린 다리 아래로 범선, 통로 위 G4 → 'all because'에 카메라가 W1 얼굴로 내려옴 → 첫 프레임으로 0ms 반복.", "changed": "", "temp": ""}], "soundtracks": []};
@@ -233,13 +293,25 @@ function jump(id) {
 function jumpLink(a, id) { a.href = "#card-" + id; a.addEventListener("click", ev => { ev.preventDefault(); jump(id); }); }
 
 function renderHeader() {
-  document.getElementById("lead").textContent = SHEET.episode + " · " + SHEET.version;
+  const lead = document.getElementById("lead");
+  lead.textContent = SHEET.episode;
+  lead.append(el("span", "ver", SHEET.version));
   const next = document.getElementById("next");
   const changed = SHEET.cuts.filter(c => c.kind === "new");
   if (!changed.length) { next.textContent = "이번 버전에서 바뀐 컷이 없습니다."; return; }
-  next.append("바뀐 컷 " + changed.length + "개부터 봐 주세요");
+  let show = changed;
+  if (changed.length === SHEET.cuts.length) {   // a first version: every cut is new, so point at the ones tagged apart
+    const n = {};
+    for (const c of changed) n[c.tag] = (n[c.tag] || 0) + 1;
+    const common = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+    show = changed.filter(c => c.tag !== common);
+    next.append("모든 컷이 이번 버전에서 새로 만들어졌습니다." + (show.length ? " 먼저 볼 컷" : ""));
+    if (!show.length) return;
+  } else {
+    next.append("바뀐 컷 " + changed.length + "개부터 봐 주세요");
+  }
   const chips = el("span", "chips");
-  for (const c of changed) { const a = el("a", "chip", c.label + " " + c.tag); jumpLink(a, c.id); chips.append(a); }
+  for (const c of show) { const a = el("a", "chip", c.label + " " + c.tag); jumpLink(a, c.id); chips.append(a); }
   next.append(chips);
 }
 
@@ -252,6 +324,21 @@ function renderSub() {
   sub.append(el("span", "n-ok", "OK " + ok), " · ", el("span", "n-fix", "수정 필요 " + fix), " · ", el("span", "n-hold", "보류 " + hold));
   const all = cur("overall").status;
   if (all) sub.append(" · 전체 " + LABEL[all]);
+  const done = ok + fix + hold, total = SHEET.cuts.length;
+  document.getElementById("dock-n").textContent = "검수 " + done + "/" + total;
+  const x = document.getElementById("dock-x");
+  x.textContent = "";
+  x.append("OK " + ok + " · ", el("span", fix ? "n-fix" : null, "수정 " + fix), " · 보류 " + hold);
+  document.getElementById("dock-fill").style.transform = "scaleX(" + (total ? done / total : 0) + ")";
+  document.getElementById("dock-next").textContent = done < total ? "다음 미검수" : "전체 의견";
+}
+
+function nextOpen() {   // the next cut without a mark below where the viewer is; then wrap; all marked -> the whole film
+  const open = SHEET.cuts.filter(c => !cur(c.id).status);
+  if (!open.length) { jump("overall"); return; }
+  const y = window.scrollY + 40;
+  const below = open.find(c => document.getElementById("card-" + c.id).getBoundingClientRect().top + window.scrollY > y);
+  jump((below || open[0]).id);
 }
 
 function renderMap() {
@@ -268,7 +355,7 @@ function paintMap() {
     const a = document.getElementById("cell-" + c.id);
     const s = cur(c.id).status;
     a.dataset.status = s;
-    a.querySelector(".s").textContent = s ? SHORT[s] : (c.kind === "new" ? "바뀜" : "같음");
+    a.querySelector(".s").textContent = s ? SHORT[s] : (c.kind === "new" ? c.tag : "같음");
     a.setAttribute("aria-label", c.label + " " + c.at + ", " + (c.kind === "new" ? "바뀐 컷" : "지난 버전과 같음") + ", " + LABEL[s]);
   }
 }
@@ -288,7 +375,7 @@ function renderFolds() {
 function card(c) {
   const full = c.kind === "full";
   const a = el("article", full ? "card full" : "card"); a.id = "card-" + c.id; a.dataset.kind = c.kind; a.dataset.status = "";
-  a.append(el("div", "band", full ? "처음부터 끝까지 이어 본 " + SHEET.version : c.kind === "new" ? "바뀜 · " + c.tag : c.tag));
+  a.append(el("div", "band", full ? "처음부터 끝까지 이어 보기 · " + SHEET.length : c.kind === "new" ? "바뀜 · " + c.tag : c.tag));
   const media = el("div", "media");
   const v = document.createElement("video");
   v.controls = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", ""); v.preload = "metadata";
@@ -304,11 +391,8 @@ function card(c) {
     info.append(el("p", "title", "전체 흐름을 먼저 보고 전체 의견을 남겨 주세요. 컷별 표시는 아래에서 합니다."));
   } else {
     info.append(el("p", "title", c.ko));
-    if (c.kind === "new") { const p = el("p", "change"); p.append(el("b", null, "바뀐 점"), c.changed); info.append(p); }
+    if (c.kind === "new" && c.changed.trim()) { const p = el("p", "change"); p.append(el("b", null, "바뀐 점"), c.changed); info.append(p); }
     if (c.temp) { const p = el("p", "temp"); p.append(el("b", null, "아직 임시"), c.temp); info.append(p); }
-    const more = el("details", "more");
-    more.append(el("summary", null, "화면 설명과 영어 대사"), el("p", null, c.picture), el("p", "en", c.say));
-    info.append(more);
   }
   const actions = el("div", "actions");
   for (const val of ["ok", "fix", "hold"]) {
@@ -325,6 +409,11 @@ function card(c) {
   ta.addEventListener("blur", () => { if (timers[c.id]) { clearTimeout(timers[c.id]); delete timers[c.id]; save(c.id); } });
   const saved = el("div", "saved"); saved.id = "saved-" + c.id;
   info.append(actions, ta, saved);
+  if (!full) {
+    const more = el("details", "more");
+    more.append(el("summary", null, "화면 설명과 영어 대사"), el("p", null, c.picture), el("p", "en", c.say));
+    info.append(more);
+  }
   if (full && (SHEET.soundtracks || []).length > 1) info.append(trackBox(v));
   a.append(media, info);
   return a;
@@ -442,6 +531,14 @@ async function connect() {
   });
 }
 
+document.getElementById("dock-next").addEventListener("click", nextOpen);
+document.getElementById("dock-tally").addEventListener("click", () => {
+  const m = document.getElementById("map-h");
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  m.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+});
+document.addEventListener("focusin", e => { if (e.target.matches("textarea")) document.body.dataset.typing = ""; });
+document.addEventListener("focusout", e => { if (e.target.matches("textarea")) delete document.body.dataset.typing; });
 renderHeader();
 renderMap();
 renderFolds();
@@ -543,9 +640,10 @@ async function connectLocal() {
       ta.remove();
     }
   };
-  const bar = el("div", "actions");
+  const bar = el("div", "tools");
   bar.style.marginTop = "4px";
-  const copyBtn = el("button", "act", "채팅용 검수 결과 복사");
+  const dockAct = document.getElementById("dock-act");   // the phone-ready sheet has a bottom bar for the main button
+  const copyBtn = el("button", "act", dockAct ? "결과 복사" : "채팅용 검수 결과 복사");
   copyBtn.type = "button";
   copyBtn.style.fontWeight = "700";
   copyBtn.addEventListener("click", () => {
@@ -557,7 +655,7 @@ async function connectLocal() {
       if (s.status || s.note) lines.push("- " + c.label + " (" + c.start + "–" + c.end + "): [" + (LABEL[s.status] || "미검수") + "] " + (s.note || ""));
     }
     if (lines.length === 1) lines.push("- (아직 표시된 항목 없음)");
-    copyToClip(lines.join("\n"), copyBtn, "복사됨! 채팅에 붙여넣으세요");
+    copyToClip(lines.join("\n"), copyBtn, dockAct ? "복사됨" : "복사됨! 채팅에 붙여넣으세요");
   });
   const linkBtn = el("button", "act", "메모 포함 링크 복사");
   linkBtn.type = "button";
@@ -575,11 +673,13 @@ async function connectLocal() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
-  bar.append(copyBtn, linkBtn, dlBtn);
+  if (dockAct) { dockAct.append(copyBtn); bar.append(linkBtn, dlBtn); } else bar.append(copyBtn, linkBtn, dlBtn);
   document.getElementById("notice").after(bar);
   notice(serverOk
     ? "로컬 검수 서버에 연결됨 — OK / 수정 필요 / 보류와 메모가 marks.json에 즉시 저장됩니다. 다 보시면 '검수표 확인해'라고 말씀해 주세요."
-    : "온라인 검수표 — 선택과 메모는 이 기기에 자동 저장됩니다. 다 보시면 '채팅용 검수 결과 복사'를 눌러 채팅에 바로 붙여넣어 주세요.");
+    : (dockAct
+      ? "선택과 메모는 이 기기에 자동 저장됩니다. 다 보시면 아래 '결과 복사'를 눌러 채팅에 붙여넣어 주세요."
+      : "온라인 검수표 — 선택과 메모는 이 기기에 자동 저장됩니다. 다 보시면 '채팅용 검수 결과 복사'를 눌러 채팅에 바로 붙여넣어 주세요."));
 }
 if (window.claude && claude.use) connect(); else connectLocal();
 </script>
